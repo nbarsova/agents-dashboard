@@ -1,13 +1,13 @@
-# React + Express + PostgreSQL Template
+# Agent Analytics Dashboard
 
-A monorepo template using npm workspaces for Digital Product School teams.
+A customer-facing analytics dashboard providing real-time and historical views of AI agent usage across an organization. Built as an MVP with mock data generated via a seed endpoint.
 
 ## Tech Stack
 
-- **Frontend**: React 19, Vite 7, TypeScript, Tailwind CSS 4
+- **Frontend**: React 19, Vite 7, TypeScript, Tailwind CSS 4, Recharts
 - **Backend**: Express 5, Prisma 7, TypeScript
 - **Database**: PostgreSQL 16
-- **Tooling**: ESLint 9, Prettier, Husky, lint-staged, Docker
+- **Auth**: JWT + bcrypt, role-based access (admin/member)
 
 ## Project Structure
 
@@ -16,11 +16,11 @@ A monorepo template using npm workspaces for Digital Product School teams.
 │   ├── frontend/         # React SPA (Vite)
 │   ├── backend/          # Express API (Prisma)
 │   └── shared/           # Shared TypeScript types
-├── docker-compose.yml    # Local development
+├── docker-compose.yml    # PostgreSQL + full-stack dev services
 └── package.json          # Root workspaces config
 ```
 
-## Quick Start
+## Getting Started
 
 ### Prerequisites
 
@@ -28,56 +28,146 @@ A monorepo template using npm workspaces for Digital Product School teams.
 - Docker and Docker Compose
 - npm 9+
 
-### Local Development with Docker Database
+### 1. Install dependencies
 
 ```bash
-# Install dependencies
 npm install
+```
 
-# Set up git hooks (for linting/formatting on commit)
-npx husky
+### 2. Start the database
 
-# Start PostgreSQL database only
+```bash
 docker compose up postgres -d
+```
 
-# Set up environment
+This starts PostgreSQL 16 on port **5435** (mapped from container port 5432).
+
+### 3. Configure environment
+
+```bash
 cp packages/backend/.env.example packages/backend/.env
 ```
 
-Update `packages/backend/.env` with the Docker database URL:
+The default `.env` is pre-configured for the Docker database:
+
 ```
-DATABASE_URL=postgresql://postgres:postgres@localhost:5435/template_db?schema=public
+DATABASE_URL="postgresql://postgres:postgres@localhost:5435/template_db?schema=public"
+PORT=3000
+CORS_ORIGIN="http://localhost:5173"
+JWT_SECRET="dev-secret-change-in-production"
 ```
 
-Then run:
+### 4. Build shared types and set up the database
+
 ```bash
-# Build shared types
+# Build shared types package
 npm run build -w @template/shared
 
-# Generate Prisma client and run migrations
+# Generate Prisma client
 npm run db:generate
-npm run db:migrate
 
-# Start backend (in one terminal)
+# Run database migrations
+npm run db:migrate
+```
+
+### 5. Start the application
+
+In two separate terminals:
+
+```bash
+# Terminal 1 — backend (http://localhost:3000)
 npm run dev:backend
 
-# Start frontend (in another terminal)
+# Terminal 2 — frontend (http://localhost:5173)
 npm run dev:frontend
 ```
 
-To stop the database:
-```bash
-docker compose down
-```
-
-### Full Docker Development
+Or start everything via Docker Compose (database + backend + frontend with hot reload):
 
 ```bash
-# Start all services (PostgreSQL, backend, frontend)
 npm run dev
 ```
-This starts everything with hot reload enabled.
 
+### 6. Seed the database
+
+Once the backend is running, seed the database with mock data:
+
+```bash
+curl -X POST http://localhost:3000/api/admin/seed
+```
+
+This generates ~3 months of realistic historical data including 2 organizations, users, agents, projects, agent runs, tool calls, and KPIs.
+
+To customize the seed:
+
+```bash
+curl -X POST http://localhost:3000/api/admin/seed \
+  -H "Content-Type: application/json" \
+  -d '{"months": 3, "eventsPerDay": 150, "variance": 0.3}'
+```
+
+To reset all data and re-seed:
+
+```bash
+curl -X POST http://localhost:3000/api/admin/seed/reset
+```
+
+## Seeded Test Data
+
+The seed creates two organizations with different pricing models so you can test both flows.
+
+### Organization 1: Hogwarts School of Witchcraft and Wizardry
+
+**Pricing plan**: Token-based ($0.00003 per token) — cost is calculated and displayed on dashboards.
+
+| User                | Role   | Email                      |
+|---------------------|--------|----------------------------|
+| Albus Dumbledore    | Admin  | `dumbledore@hogwarts.edu`  |
+| Minerva McGonagall  | Admin  | `mcgonagall@hogwarts.edu`  |
+| Rubeus Hagrid       | Member | `hagrid@hogwarts.edu`      |
+| Neville Longbottom  | Member | `neville@hogwarts.edu`     |
+| Ron Weasley         | Member | `ron@hogwarts.edu`         |
+| Hermione Granger    | Member | `hermione@hogwarts.edu`    |
+| Harry Potter        | Member | `harry@hogwarts.edu`       |
+| Luna Lovegood       | Member | `luna@hogwarts.edu`        |
+| Ginny Weasley       | Member | `ginny@hogwarts.edu`       |
+| Severus Snape       | Member | `snape@hogwarts.edu`       |
+
+5 agents, 4 projects, 3 KPIs.
+
+### Organization 2: Ministry of Magic
+
+**Pricing plan**: Seat-based (500 session limit) — session usage gauge is displayed instead of cost.
+
+| User                   | Role   | Email                      |
+|------------------------|--------|----------------------------|
+| Cornelius Fudge        | Admin  | `fudge@ministry.gov`       |
+| Arthur Weasley         | Member | `arthur@ministry.gov`      |
+| Nymphadora Tonks       | Member | `tonks@ministry.gov`       |
+| Kingsley Shacklebolt   | Member | `kingsley@ministry.gov`    |
+| Percy Weasley          | Member | `percy@ministry.gov`       |
+| Dolores Umbridge       | Member | `umbridge@ministry.gov`    |
+| Rufus Scrimgeour       | Member | `scrimgeour@ministry.gov`  |
+| Amelia Bones           | Member | `bones@ministry.gov`       |
+
+4 agents, 3 projects, 2 KPIs.
+
+### Password for all seeded users
+
+```
+password123
+```
+
+### What to test with each user type
+
+| Scenario                          | Log in as                                    |
+|-----------------------------------|----------------------------------------------|
+| **Admin + token pricing**         | `dumbledore@hogwarts.edu` — sees org overview with cost metrics, trends, channel breakdown, top agents/users |
+| **Admin + seat pricing**          | `fudge@ministry.gov` — sees org overview with "N/A (seat plan)" instead of cost |
+| **Member + token pricing**        | `hagrid@hogwarts.edu` — sees personal dashboard with cost estimate, no org overview access |
+| **Member + seat pricing**         | `arthur@ministry.gov` — sees personal dashboard with session usage gauge instead of cost |
+| **Low-activity member**           | `snape@hogwarts.edu` — sees personal dashboard with minimal usage data |
+| **Multi-org (after manual setup)**| Sign up a new user, then add them to both orgs — org switcher dropdown appears in navbar |
 
 ## Scripts
 
@@ -88,32 +178,19 @@ This starts everything with hot reload enabled.
 | `npm run dev:frontend` | Start frontend dev server |
 | `npm run build` | Build all packages |
 | `npm run lint` | Run ESLint |
+| `npm run lint:fix` | Run ESLint with auto-fix |
 | `npm run format` | Format code with Prettier |
 | `npm run db:generate` | Generate Prisma client |
 | `npm run db:migrate` | Run database migrations |
 
-## Coolify Deployment
+## Stopping the database
 
-### 1. Create PostgreSQL Database
+```bash
+docker compose down
+```
 
-In Coolify, create a new PostgreSQL database resource. Note the connection details.
+To also remove the persisted data volume:
 
-### 2. Deploy Backend
-
-1. Create a new resource from this repository
-2. Set build context to repository root
-3. Set Dockerfile path to `packages/backend/Dockerfile`
-4. Make sure that "Port exposes" setting matches the EXPOSES value from Dockerfile (e.g. 3000)
-5. Configure environment variables:
-   - `DATABASE_URL`: PostgreSQL connection string from step 1
-   - `PORT`: `3000`
-   - `CORS_ORIGIN`: Your frontend URL (e.g., `https://fe.my-team.dpschool.app`)
-
-### 3. Deploy Frontend
-
-1. Create another resource from this repository
-2. Set build context to repository root
-3. Set Dockerfile path to `packages/frontend/Dockerfile`
-4. Make sure that "Port exposes" setting matches the EXPOSES value from Dockerfile (e.g. 80)
-5. Configure environmental variable:
-   - `VITE_API_URL`: Your backend URL, including "api" suffix, if you're using it for all endpoints (e.g., `https://be.my-team.dpschool.app/api`)
+```bash
+docker compose down -v
+```

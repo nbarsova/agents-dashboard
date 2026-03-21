@@ -1,6 +1,6 @@
-# AI Agent Instructions - DPS React Express Template
+# AI Agent Instructions - Agent Analytics Dashboard
 
-This file provides context for AI coding agents (Claude Code, GitHub Copilot, OpenAI Codex/ChatGPT, Cursor, etc.).
+This file provides context for AI coding agents (Claude Code, GitHub Copilot, OpenAI Codex/ChatGPT, Cursor, etc.). The project is an MVP of a customer-facing analytics dashboard embedded in the platform's web UI, providing real-time and historical views of agent usage across the organization.
 
 ## Project Overview
 

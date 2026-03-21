@@ -7,7 +7,9 @@ import pg from 'pg';
 
 import { PrismaClient } from '../prisma/generated/client';
 import { errorHandler } from './middleware/error-handler';
-import teamMembersRouter from './routes/team-members';
+import analyticsRouter from './routes/analytics';
+import authRouter from './routes/auth';
+import seedRouter from './routes/seed';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -31,7 +33,9 @@ app.get('/api/health', (_req, res) => {
 });
 
 // Routes
-app.use('/api/team-members', teamMembersRouter);
+app.use('/api/auth', authRouter);
+app.use('/api', analyticsRouter);
+app.use('/api/admin/seed', seedRouter);
 
 // Error handling
 app.use(errorHandler);

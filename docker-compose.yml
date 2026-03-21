@@ -22,7 +22,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/template_db?schema=public
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/agents_dashboard_db?schema=public
       PORT: 3000
       CORS_ORIGIN: http://localhost:5173
     volumes:
