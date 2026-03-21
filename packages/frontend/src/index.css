@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('./fonts/plus-jakarta-sans-v12-latin-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --color-dps-blue-500: #0066cc;
+  --color-dps-blue-600: #0052a3;
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+}

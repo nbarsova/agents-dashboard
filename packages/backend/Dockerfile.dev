@@ -1,0 +1,29 @@
+FROM node:20-alpine
+
+# Install dependencies required for Prisma on Alpine
+RUN apk add --no-cache openssl libc6-compat
+
+WORKDIR /app
+
+# Copy root package files
+COPY package.json package-lock.json* ./
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/backend/package.json ./packages/backend/
+
+# Install dependencies
+RUN npm install
+
+# Copy source files
+COPY packages/shared ./packages/shared
+COPY packages/backend ./packages/backend
+
+# Build shared package
+RUN npm run build -w @template/shared
+
+# Generate Prisma client
+RUN npm run db:generate -w @template/backend
+
+EXPOSE 3000
+
+# Run migrations and start dev server with hot reload
+CMD ["sh", "-c", "npm run db:migrate -w @template/backend && npm run dev -w @template/backend"]

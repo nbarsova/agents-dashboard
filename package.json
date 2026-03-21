@@ -1,0 +1,51 @@
+{
+  "name": "dps-react-express-template",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "docker-compose up",
+    "dev:backend": "npm run dev -w @template/backend",
+    "dev:frontend": "npm run dev -w @template/frontend",
+    "build": "npm run build -w @template/shared && npm run build -w @template/backend && npm run build -w @template/frontend",
+    "build:backend": "npm run build -w @template/backend",
+    "build:frontend": "npm run build -w @template/frontend",
+    "lint": "eslint packages/backend/src packages/frontend/src packages/shared/src --ext .ts,.tsx",
+    "lint:fix": "eslint packages/backend/src packages/frontend/src packages/shared/src --ext .ts,.tsx --fix",
+    "format": "prettier --write \"packages/*/src/**/*.{ts,tsx,json}\"",
+    "format:check": "prettier --check \"packages/*/src/**/*.{ts,tsx,json}\"",
+    "db:generate": "npm run db:generate -w @template/backend",
+    "db:migrate": "npm run db:migrate -w @template/backend"
+  },
+  "devDependencies": {
+    "@eslint/compat": "^2.0.2",
+    "@eslint/eslintrc": "^3.3.3",
+    "@eslint/js": "^9.39.2",
+    "@typescript-eslint/eslint-plugin": "^8.55.0",
+    "@typescript-eslint/parser": "^8.55.0",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.34.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "globals": "^17.3.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.2.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "@types/express": "^5.0.6"
+  },
+  "lint-staged": {
+    "packages/*/src/**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "packages/*/src/**/*.json": [
+      "prettier --write"
+    ]
+  }
+}

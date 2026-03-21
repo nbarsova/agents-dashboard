@@ -1,0 +1,23 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy root package files
+COPY package.json package-lock.json* ./
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/frontend/package.json ./packages/frontend/
+
+# Install dependencies
+RUN npm install
+
+# Copy source files
+COPY packages/shared ./packages/shared
+COPY packages/frontend ./packages/frontend
+
+# Build shared package
+RUN npm run build -w @template/shared
+
+EXPOSE 5173
+
+# Start Vite dev server
+CMD ["npm", "run", "dev", "-w", "@template/frontend"]
