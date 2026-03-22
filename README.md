@@ -1,6 +1,6 @@
 # Agent Analytics Dashboard
 
-A customer-facing analytics dashboard providing real-time and historical views of AI agent usage across an organization. Built as an MVP with mock data generated via a seed endpoint.
+A customer-facing analytics dashboard providing real-time and historical views of AI agent usage across an organization. Prototype with mock data generated via a seed endpoint.
 
 ## Tech Stack
 
@@ -166,8 +166,6 @@ password123
 | **Admin + seat pricing**          | `fudge@ministry.gov` — sees org overview with "N/A (seat plan)" instead of cost |
 | **Member + token pricing**        | `hagrid@hogwarts.edu` — sees personal dashboard with cost estimate, no org overview access |
 | **Member + seat pricing**         | `arthur@ministry.gov` — sees personal dashboard with session usage gauge instead of cost |
-| **Low-activity member**           | `snape@hogwarts.edu` — sees personal dashboard with minimal usage data |
-| **Multi-org (after manual setup)**| Sign up a new user, then add them to both orgs — org switcher dropdown appears in navbar |
 
 ## Scripts
 
