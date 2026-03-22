@@ -1,4 +1,4 @@
-import { Link, Outlet, useParams } from 'react-router-dom';
+import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
 
 import { useAuth } from '../context/AuthContext';
 
@@ -7,26 +7,46 @@ export default function AppLayout() {
   const { orgId } = useParams();
   const currentOrgId = orgId || defaultOrgId;
 
+  const { pathname } = useLocation();
   const currentOrg = memberships.find((m) => m.orgId === currentOrgId);
   const isAdmin = currentOrg?.role === 'admin';
+
+  const overviewPath = `/orgs/${currentOrgId}/overview`;
+  const isOverviewActive = pathname.startsWith(overviewPath);
+  const isAgentsActive = pathname.startsWith(`/orgs/${currentOrgId}/agents`);
+  const isMyUsageActive = pathname.startsWith('/me/analytics');
 
   return (
     <div className="flex h-screen flex-col bg-bg-main">
       <nav className="flex items-center justify-between border-b border-border bg-white px-6 py-3">
         <div className="flex items-center gap-6">
-          <Link to={currentOrgId ? `/orgs/${currentOrgId}/overview` : '/'} className="text-lg font-bold text-text-primary">
+          <Link
+            to={isAdmin ? `/orgs/${currentOrgId}/overview` : '/'}
+            className="text-lg font-bold text-text-primary"
+          >
             Agents Analytics
           </Link>
           {currentOrgId && isAdmin && (
             <Link
               to={`/orgs/${currentOrgId}/overview`}
-              className="text-sm text-text-secondary hover:text-primary"
+              className={`text-sm ${isOverviewActive ? 'font-medium text-primary' : 'text-text-secondary hover:text-primary'}`}
             >
               Organization Overview
             </Link>
           )}
-          <Link to="/me/analytics" className="text-sm text-text-secondary hover:text-primary">
-            My Usage
+          {currentOrgId && (
+            <Link
+              to={`/orgs/${currentOrgId}/agents`}
+              className={`text-sm ${isAgentsActive ? 'font-medium text-primary' : 'text-text-secondary hover:text-primary'}`}
+            >
+              Agents
+            </Link>
+          )}
+          <Link
+            to="/me/analytics"
+            className={`text-sm ${isMyUsageActive ? 'font-medium text-primary' : 'text-text-secondary hover:text-primary'}`}
+          >
+            Recent Runs
           </Link>
         </div>
         <div className="flex items-center gap-4">
@@ -49,17 +69,12 @@ export default function AppLayout() {
             <span className="text-xs text-text-secondary">
               {currentOrg.org.name}
               {isAdmin && (
-                <span className="ml-1 rounded bg-primary/10 px-1.5 py-0.5 text-primary">
-                  admin
-                </span>
+                <span className="ml-1 rounded bg-primary/10 px-1.5 py-0.5 text-primary">admin</span>
               )}
             </span>
           )}
           <span className="text-sm text-text-secondary">{user?.name}</span>
-          <button
-            onClick={logout}
-            className="text-sm text-text-secondary hover:text-red-500"
-          >
+          <button onClick={logout} className="text-sm text-text-secondary hover:text-red-500">
             Logout
           </button>
         </div>

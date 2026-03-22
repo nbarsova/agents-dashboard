@@ -5,24 +5,29 @@ import { useParams } from 'react-router-dom';
 import { getAgentDetail } from '../../api/analytics';
 import PeriodSelector from '../../components/PeriodSelector';
 import StatCard from '../../components/StatCard';
+import { useAuth } from '../../context/AuthContext';
 import RunRow from './components/RunRow';
 
 export default function AgentDetail() {
   const { orgId, agentId } = useParams<{ orgId: string; agentId: string }>();
+  const { user, memberships } = useAuth();
   const [period, setPeriod] = useState('30d');
   const [page, setPage] = useState(1);
   const [data, setData] = useState<AgentDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const currentOrg = memberships.find((m) => m.orgId === orgId);
+  const isAdmin = currentOrg?.role === 'admin';
+
   useEffect(() => {
     if (!orgId || !agentId) return;
     setLoading(true);
-    getAgentDetail(orgId, agentId, period, page)
+    getAgentDetail(orgId, agentId, period, page, 50, isAdmin ? undefined : user?.id)
       .then(setData)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [orgId, agentId, period, page]);
+  }, [orgId, agentId, period, page, isAdmin, user?.id]);
 
   if (loading) return <div className="text-text-secondary">Loading agent details...</div>;
   if (error) return <div className="text-red-500">{error}</div>;

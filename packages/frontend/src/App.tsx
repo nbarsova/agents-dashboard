@@ -4,6 +4,7 @@ import AppLayout from './components/AppLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import AgentDetail from './pages/AgentDetail';
+import AgentsList from './pages/AgentsList';
 import Login from './pages/Login';
 import OrgOverview from './pages/OrgOverview';
 import PersonalDashboard from './pages/PersonalDashboard';
@@ -19,6 +20,7 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route path="/orgs/:orgId/overview" element={<OrgOverview />} />
+              <Route path="/orgs/:orgId/agents" element={<AgentsList />} />
               <Route path="/orgs/:orgId/agents/:agentId" element={<AgentDetail />} />
               <Route path="/me/analytics" element={<PersonalDashboard />} />
             </Route>

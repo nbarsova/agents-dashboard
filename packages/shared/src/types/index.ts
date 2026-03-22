@@ -181,6 +181,13 @@ export interface PersonalAnalytics {
   myAgents: { agent: Pick<Agent, 'id' | 'name'>; runs: number }[];
 }
 
+// Agent list types
+export interface AgentWithStats {
+  agent: Agent;
+  totalRuns: number;
+  totalTokens: number;
+}
+
 // KPI request types
 export interface CreateKpiRequest {
   name: string;

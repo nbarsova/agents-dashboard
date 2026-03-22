@@ -5,7 +5,6 @@ import { getPersonalAnalytics } from '../../api/analytics';
 import PeriodSelector from '../../components/PeriodSelector';
 import StatCard from '../../components/StatCard';
 import { useAuth } from '../../context/AuthContext';
-import MyAgentsList from './components/MyAgentsList';
 import RecentRunsList from './components/RecentRunsList';
 import SessionGauge from './components/SessionGauge';
 
@@ -35,7 +34,7 @@ export default function PersonalDashboard() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-text-primary">My Dashboard</h1>
+        <h1 className="text-xl font-bold text-text-primary">Recent Runs</h1>
         <PeriodSelector value={period} onChange={setPeriod} />
       </div>
 
@@ -57,12 +56,7 @@ export default function PersonalDashboard() {
         />
       )}
 
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2">
-          <RecentRunsList runs={data.recentRuns} />
-        </div>
-        <MyAgentsList agents={data.myAgents} orgId={orgId} />
-      </div>
+      <RecentRunsList runs={data.recentRuns} />
 
       {currentOrg && (
         <p className="text-xs text-text-secondary">

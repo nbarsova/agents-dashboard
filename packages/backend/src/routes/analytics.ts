@@ -1,6 +1,7 @@
 import type {
   AgentDetail,
   AgentRunWithDetails,
+  AgentWithStats,
   ApiResponse,
   OrgOverview,
   PersonalAnalytics,
@@ -120,12 +121,53 @@ router.get(
   },
 );
 
+// ── GET /api/orgs/:orgId/agents ──
+
+router.get(
+  '/orgs/:orgId/agents',
+  authenticate,
+  async (
+    req: AuthenticatedRequest,
+    res: Response<ApiResponse<AgentWithStats[]>>,
+    next: NextFunction,
+  ) => {
+    try {
+      const orgId = req.params.orgId as string;
+
+      const agents = await prisma.agent.findMany({
+        where: { orgId },
+        orderBy: { name: 'asc' },
+      });
+
+      const runGroups = await prisma.agentRun.groupBy({
+        by: ['agentId'],
+        where: { orgId },
+        _count: { id: true },
+        _sum: { tokensUsed: true },
+      });
+
+      const statsMap = new Map(
+        runGroups.map((g) => [g.agentId, { runs: g._count.id, tokens: g._sum.tokensUsed ?? 0 }]),
+      );
+
+      const data: AgentWithStats[] = agents.map((a) => ({
+        agent: { id: a.id, orgId: a.orgId, name: a.name, description: a.description },
+        totalRuns: statsMap.get(a.id)?.runs ?? 0,
+        totalTokens: statsMap.get(a.id)?.tokens ?? 0,
+      }));
+
+      res.json({ data });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
 // ── GET /api/orgs/:orgId/analytics/agents/:agentId ──
 
 router.get(
   '/orgs/:orgId/analytics/agents/:agentId',
   authenticate,
-  requireAdmin,
   async (
     req: AuthenticatedRequest,
     res: Response<ApiResponse<AgentDetail>>,
@@ -138,6 +180,8 @@ router.get(
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
       const perPage = Math.min(100, Math.max(1, parseInt(req.query.perPage as string) || 50));
 
+      const userId = req.query.userId as string | undefined;
+
       const agent = await prisma.agent.findFirst({
         where: { id: agentId, orgId },
       });
@@ -149,7 +193,12 @@ router.get(
         return;
       }
 
-      const where = { agentId, orgId, createdAt: { gte: since } };
+      const where = {
+        agentId,
+        orgId,
+        createdAt: { gte: since },
+        ...(userId ? { userId } : {}),
+      };
 
       // Summary
       const agg = await prisma.agentRun.aggregate({

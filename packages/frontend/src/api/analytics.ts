@@ -1,6 +1,10 @@
-import type { AgentDetail, OrgOverview, PersonalAnalytics } from '@template/shared';
+import type { AgentDetail, AgentWithStats, OrgOverview, PersonalAnalytics } from '@template/shared';
 
 import { apiGet } from './client';
+
+export function getAgents(orgId: string): Promise<AgentWithStats[]> {
+  return apiGet<AgentWithStats[]>(`/orgs/${orgId}/agents`);
+}
 
 export function getOrgOverview(orgId: string, period = '30d'): Promise<OrgOverview> {
   return apiGet<OrgOverview>(`/orgs/${orgId}/analytics/overview?period=${period}`);
@@ -12,10 +16,11 @@ export function getAgentDetail(
   period = '30d',
   page = 1,
   perPage = 50,
+  userId?: string,
 ): Promise<AgentDetail> {
-  return apiGet<AgentDetail>(
-    `/orgs/${orgId}/analytics/agents/${agentId}?period=${period}&page=${page}&perPage=${perPage}`,
-  );
+  let url = `/orgs/${orgId}/analytics/agents/${agentId}?period=${period}&page=${page}&perPage=${perPage}`;
+  if (userId) url += `&userId=${userId}`;
+  return apiGet<AgentDetail>(url);
 }
 
 export function getPersonalAnalytics(

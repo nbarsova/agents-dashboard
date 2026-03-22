@@ -1,6 +1,7 @@
 import type { AgentRunWithDetails } from '@template/shared';
+import { useState } from 'react';
 
-import { statusColor } from './utils';
+import { formatChannel, statusColor } from './utils';
 
 interface RecentRunsListProps {
   runs: AgentRunWithDetails[];
@@ -8,45 +9,81 @@ interface RecentRunsListProps {
 
 export default function RecentRunsList({ runs }: RecentRunsListProps) {
   return (
-    <div className="rounded-lg border border-border bg-white p-5">
-      <h3 className="mb-3 text-sm font-semibold text-text-primary">Recent Runs</h3>
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-border text-left text-xs text-text-secondary">
-            <th className="pb-2 font-medium">Agent</th>
-            <th className="pb-2 font-medium">Project</th>
-            <th className="pb-2 font-medium">Time</th>
-            <th className="pb-2 text-right font-medium">Tokens</th>
-            <th className="pb-2 text-right font-medium">Status</th>
-            <th className="pb-2 text-right font-medium">Duration</th>
-          </tr>
-        </thead>
-        <tbody>
-          {runs.map((run) => (
-            <tr key={run.id} className="border-b border-border last:border-b-0">
-              <td className="py-2 text-sm text-text-primary">{run.agent.name}</td>
-              <td className="py-2 text-xs text-text-secondary">{run.project?.name ?? '—'}</td>
-              <td className="py-2 text-xs text-text-secondary">
-                {new Date(run.createdAt).toLocaleString()}
-              </td>
-              <td className="py-2 text-right text-sm text-text-primary">
-                {run.tokensUsed.toLocaleString()}
-              </td>
-              <td className={`py-2 text-right text-xs ${statusColor(run.status)}`}>{run.status}</td>
-              <td className="py-2 text-right text-xs text-text-secondary">
-                {(run.durationMs / 1000).toFixed(1)}s
-              </td>
-            </tr>
-          ))}
-          {runs.length === 0 && (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-sm text-text-secondary">
-                No recent runs
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+    <div className="rounded-lg border border-border bg-white">
+      <div className="border-b border-border px-4 py-3">
+        <h3 className="text-sm font-semibold text-text-primary">Recent Runs</h3>
+      </div>
+      <div className="flex items-center gap-4 border-b border-border bg-bg-alt px-4 py-2 text-xs font-medium text-text-secondary">
+        <span className="w-4" />
+        <span className="w-44">Agent</span>
+        <span className="w-40">Timestamp</span>
+        <span className="w-60">Project</span>
+        <span className="w-16 text-center">Channel</span>
+        <span className="w-24 text-right">Tokens</span>
+        <span className="w-20 text-right">Duration</span>
+        <span className="w-16 text-center">Status</span>
+        <span className="w-16 text-center">Tools</span>
+      </div>
+      {runs.map((run) => (
+        <RunRow key={run.id} run={run} />
+      ))}
+      {runs.length === 0 && (
+        <div className="px-4 py-4 text-center text-sm text-text-secondary">No recent runs</div>
+      )}
+    </div>
+  );
+}
+
+function RunRow({ run }: { run: AgentRunWithDetails }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="border-b border-border last:border-b-0">
+      <div
+        onClick={() => setExpanded(!expanded)}
+        className="flex cursor-pointer items-center gap-4 px-4 py-3 hover:bg-bg-alt"
+      >
+        <span className="w-4 text-xs text-text-secondary">{expanded ? '▾' : '▸'}</span>
+        <span className="w-44 truncate text-sm text-text-primary">{run.agent.name}</span>
+        <span className="w-40 text-xs text-text-secondary">
+          {new Date(run.createdAt).toLocaleString()}
+        </span>
+        <span className="w-60 truncate text-sm text-text-secondary">
+          {run.project?.name ?? '—'}
+        </span>
+        <span className="w-16 text-center text-xs">
+          <span className="rounded bg-bg-alt px-2 py-0.5 text-text-secondary">
+            {formatChannel(run.invocationChannel)}
+          </span>
+        </span>
+        <span className="w-24 text-right text-sm text-text-primary">
+          {run.tokensUsed.toLocaleString()}
+        </span>
+        <span className="w-20 text-right text-xs text-text-secondary">
+          {(run.durationMs / 1000).toFixed(1)}s
+        </span>
+        <span className={`w-16 rounded px-2 py-0.5 text-center text-xs ${statusColor(run.status)}`}>
+          {run.status}
+        </span>
+        <span className="w-16 text-center text-xs text-text-secondary">
+          {run.toolCallCount} tools
+        </span>
+      </div>
+      {expanded && run.toolCallBreakdown.length > 0 && (
+        <div className="bg-bg-alt px-12 py-2">
+          <p className="mb-1 text-xs font-medium text-text-secondary">Tool Calls</p>
+          <div className="flex flex-wrap gap-2">
+            {run.toolCallBreakdown.map((tc) => (
+              <span
+                key={tc.toolName}
+                className="rounded bg-white px-2 py-1 text-xs text-text-primary"
+              >
+                {tc.toolName}: {tc.count}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
