@@ -1,3 +1,5 @@
+import { getBarColor } from './utils';
+
 interface SessionGaugeProps {
   used: number;
   limit: number;
@@ -5,8 +7,7 @@ interface SessionGaugeProps {
 }
 
 export default function SessionGauge({ used, limit, percentage }: SessionGaugeProps) {
-  const barColor =
-    percentage >= 100 ? 'bg-red-500' : percentage >= 80 ? 'bg-alert' : 'bg-primary';
+  const barColor = getBarColor(percentage);
 
   return (
     <div className="rounded-lg border border-border bg-white p-5">

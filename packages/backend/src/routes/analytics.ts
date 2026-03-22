@@ -4,13 +4,14 @@ import type {
   ApiResponse,
   OrgOverview,
   PersonalAnalytics,
-  TrendPoint,
 } from '@template/shared';
 import { NextFunction, Response, Router } from 'express';
 
 import { authenticate, AuthenticatedRequest, requireAdmin } from '../middleware/auth';
 import { prisma } from '../index';
+import { buildTrendMap } from '../utils/aggregation';
 import { parsePeriod } from '../utils/period';
+import { calculateSessionUsage, calculateSuccessRate, calculateTokenCost } from '../utils/pricing';
 
 const router = Router();
 
@@ -42,10 +43,7 @@ router.get(
 
       const totalRuns = agg._count.id;
       const totalTokens = agg._sum.tokensUsed ?? 0;
-      const totalCost =
-        org.pricingPlan === 'token' && org.tokenRate
-          ? totalTokens * Number(org.tokenRate)
-          : null;
+      const totalCost = calculateTokenCost(totalTokens, org.pricingPlan, Number(org.tokenRate));
 
       // Trends (group by day)
       const runs = await prisma.agentRun.findMany({
@@ -54,18 +52,7 @@ router.get(
         orderBy: { createdAt: 'asc' },
       });
 
-      const trendMap = new Map<string, TrendPoint>();
-      for (const run of runs) {
-        const date = run.createdAt.toISOString().slice(0, 10);
-        const existing = trendMap.get(date);
-        if (existing) {
-          existing.runs += 1;
-          existing.tokens += run.tokensUsed;
-        } else {
-          trendMap.set(date, { date, runs: 1, tokens: run.tokensUsed });
-        }
-      }
-      const trends = Array.from(trendMap.values());
+      const trends = buildTrendMap(runs);
 
       // Top agents
       const agentGroups = await prisma.agentRun.groupBy({
@@ -177,7 +164,7 @@ router.get(
       });
 
       const totalRuns = agg._count.id;
-      const successRate = totalRuns > 0 ? successCount / totalRuns : 0;
+      const successRate = calculateSuccessRate(successCount, totalRuns);
 
       // Paginated runs
       const [rawRuns, total] = await Promise.all([
@@ -329,10 +316,7 @@ router.get(
       const totalTokens = agg._sum.tokensUsed ?? 0;
 
       // Pricing
-      const cost =
-        org.pricingPlan === 'token' && org.tokenRate
-          ? totalTokens * Number(org.tokenRate)
-          : null;
+      const cost = calculateTokenCost(totalTokens, org.pricingPlan, Number(org.tokenRate));
 
       // Session usage for seat-based plans
       let sessionUsage: PersonalAnalytics['sessionUsage'] = null;
@@ -349,12 +333,7 @@ router.get(
           distinct: ['sessionId'],
         });
 
-        const used = sessionsResult.length;
-        sessionUsage = {
-          used,
-          limit: org.sessionLimit,
-          percentage: Math.round((used / org.sessionLimit) * 100 * 100) / 100,
-        };
+        sessionUsage = calculateSessionUsage(sessionsResult.length, org.sessionLimit);
       }
 
       // Recent runs

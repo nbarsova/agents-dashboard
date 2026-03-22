@@ -17,7 +17,8 @@
     "format": "prettier --write \"packages/*/src/**/*.{ts,tsx,json}\"",
     "format:check": "prettier --check \"packages/*/src/**/*.{ts,tsx,json}\"",
     "db:generate": "npm run db:generate -w @template/backend",
-    "db:migrate": "npm run db:migrate -w @template/backend"
+    "db:migrate": "npm run db:migrate -w @template/backend",
+    "test": "npm run test --workspaces --if-present"
   },
   "devDependencies": {
     "@eslint/compat": "^2.0.2",

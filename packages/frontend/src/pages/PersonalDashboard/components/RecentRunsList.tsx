@@ -1,20 +1,9 @@
 import type { AgentRunWithDetails } from '@template/shared';
 
+import { statusColor } from './utils';
+
 interface RecentRunsListProps {
   runs: AgentRunWithDetails[];
-}
-
-function statusColor(status: string): string {
-  switch (status) {
-    case 'success':
-      return 'text-success';
-    case 'failure':
-      return 'text-red-500';
-    case 'timeout':
-      return 'text-alert';
-    default:
-      return 'text-text-secondary';
-  }
 }
 
 export default function RecentRunsList({ runs }: RecentRunsListProps) {

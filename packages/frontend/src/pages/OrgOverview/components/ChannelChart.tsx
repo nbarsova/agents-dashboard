@@ -1,14 +1,11 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 
+import { formatChannel } from './utils';
+
 const COLORS = ['#00A3FF', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
 interface ChannelChartProps {
   data: { channel: string; count: number }[];
-}
-
-function formatChannel(channel: string): string {
-  if (channel.startsWith('integration:')) return channel.split(':')[1];
-  return channel.toUpperCase();
 }
 
 export default function ChannelChart({ data }: ChannelChartProps) {
