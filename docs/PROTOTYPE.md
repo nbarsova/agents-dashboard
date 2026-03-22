@@ -1,4 +1,4 @@
-# MVP Implementation
+# Prototype Implementation
 
 ## Scope
 
