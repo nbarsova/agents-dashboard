@@ -180,7 +180,22 @@ router.get(
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
       const perPage = Math.min(100, Math.max(1, parseInt(req.query.perPage as string) || 50));
 
-      const userId = req.query.userId as string | undefined;
+      const authenticatedUserId = req.userId!;
+
+      // Check membership and role
+      const membership = await prisma.membership.findUnique({
+        where: { userId_orgId: { userId: authenticatedUserId, orgId } },
+      });
+
+      if (!membership) {
+        res.status(403).json({ data: null as unknown as AgentDetail, message: 'Not a member' });
+        return;
+      }
+
+      const isAdmin = membership.role === 'admin';
+
+      // Non-admin users can only see their own runs — enforce server-side
+      const effectiveUserId = isAdmin ? undefined : authenticatedUserId;
 
       const agent = await prisma.agent.findFirst({
         where: { id: agentId, orgId },
@@ -197,7 +212,7 @@ router.get(
         agentId,
         orgId,
         createdAt: { gte: since },
-        ...(userId ? { userId } : {}),
+        ...(effectiveUserId ? { userId: effectiveUserId } : {}),
       };
 
       // Summary

@@ -30,6 +30,11 @@ export default function RecentRunsList({ runs }: RecentRunsListProps) {
       {runs.length === 0 && (
         <div className="px-4 py-4 text-center text-sm text-text-secondary">No recent runs</div>
       )}
+      {runs.length >= 20 && (
+        <div className="border-t border-border px-4 py-3 text-center text-xs text-text-secondary">
+          Showing last 20 runs
+        </div>
+      )}
     </div>
   );
 }
@@ -66,7 +71,7 @@ function RunRow({ run }: { run: AgentRunWithDetails }) {
           {run.status}
         </span>
         <span className="w-16 text-center text-xs text-text-secondary">
-          {run.toolCallCount} tools
+          {run.toolCallCount} {run.toolCallCount === 1 ? 'tool' : 'tools'}
         </span>
       </div>
       {expanded && run.toolCallBreakdown.length > 0 && (

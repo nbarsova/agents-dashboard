@@ -43,6 +43,7 @@ export default function Signup() {
           <input
             type="text"
             placeholder="Full name"
+            autoComplete="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="rounded border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
@@ -51,6 +52,7 @@ export default function Signup() {
           <input
             type="email"
             placeholder="Email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="rounded border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
@@ -59,6 +61,7 @@ export default function Signup() {
           <input
             type="password"
             placeholder="Password"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="rounded border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
@@ -67,6 +70,7 @@ export default function Signup() {
           <input
             type="text"
             placeholder="Organization name"
+            autoComplete="organization"
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
             className="rounded border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"

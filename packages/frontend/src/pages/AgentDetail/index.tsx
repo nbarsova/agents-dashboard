@@ -1,33 +1,28 @@
 import type { AgentDetail as AgentDetailData } from '@template/shared';
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
 import { getAgentDetail } from '../../api/analytics';
 import PeriodSelector from '../../components/PeriodSelector';
 import StatCard from '../../components/StatCard';
-import { useAuth } from '../../context/AuthContext';
 import RunRow from './components/RunRow';
 
 export default function AgentDetail() {
   const { orgId, agentId } = useParams<{ orgId: string; agentId: string }>();
-  const { user, memberships } = useAuth();
   const [period, setPeriod] = useState('30d');
   const [page, setPage] = useState(1);
   const [data, setData] = useState<AgentDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const currentOrg = memberships.find((m) => m.orgId === orgId);
-  const isAdmin = currentOrg?.role === 'admin';
-
   useEffect(() => {
     if (!orgId || !agentId) return;
     setLoading(true);
-    getAgentDetail(orgId, agentId, period, page, 50, isAdmin ? undefined : user?.id)
+    getAgentDetail(orgId, agentId, period, page, 50)
       .then(setData)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [orgId, agentId, period, page, isAdmin, user?.id]);
+  }, [orgId, agentId, period, page]);
 
   if (loading) return <div className="text-text-secondary">Loading agent details...</div>;
   if (error) return <div className="text-red-500">{error}</div>;
@@ -38,6 +33,12 @@ export default function AgentDetail() {
 
   return (
     <div className="flex flex-col gap-6">
+      <Link
+        to={`/orgs/${orgId}/agents`}
+        className="text-sm text-text-secondary hover:text-primary"
+      >
+        &larr; Back to Agents
+      </Link>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-text-primary">{agent.name}</h1>
@@ -62,14 +63,35 @@ export default function AgentDetail() {
         <div className="rounded-lg border border-border bg-white p-5">
           <h3 className="mb-3 text-sm font-semibold text-text-primary">Linked KPIs</h3>
           <div className="flex flex-wrap gap-3">
-            {kpis.map((kpi) => (
-              <div key={kpi.id} className="rounded border border-border px-3 py-2">
-                <p className="text-sm font-medium text-text-primary">{kpi.name}</p>
-                <p className="text-xs text-text-secondary">
-                  Target: {kpi.target ?? '—'} | Current: {kpi.currentValue ?? '—'}
-                </p>
-              </div>
-            ))}
+            {kpis.map((kpi) => {
+              const targetNum = parseFloat(String(kpi.target ?? '').replace(/[^0-9.]/g, ''));
+              const currentNum = parseFloat(String(kpi.currentValue ?? ''));
+              const hasProgress = !isNaN(targetNum) && targetNum > 0 && !isNaN(currentNum);
+              const ratio = hasProgress ? currentNum / targetNum : 0;
+              const progressColor = ratio >= 0.8
+                ? 'bg-success'
+                : ratio >= 0.5
+                  ? 'bg-alert'
+                  : 'bg-red-500';
+
+              return (
+                <div key={kpi.id} className="min-w-48 rounded border border-border px-4 py-3">
+                  <p className="text-sm font-medium text-text-primary">{kpi.name}</p>
+                  <div className="mt-2 flex gap-6 text-xs text-text-secondary">
+                    <span>Target: <span className="font-medium text-text-primary">{kpi.target ?? '—'}</span></span>
+                    <span>Current: <span className="font-medium text-text-primary">{kpi.currentValue ?? '—'}</span></span>
+                  </div>
+                  {hasProgress && (
+                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-bg-alt">
+                      <div
+                        className={`h-full rounded-full ${progressColor}`}
+                        style={{ width: `${Math.min(100, ratio * 100)}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

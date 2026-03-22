@@ -16,10 +16,8 @@ export function getAgentDetail(
   period = '30d',
   page = 1,
   perPage = 50,
-  userId?: string,
 ): Promise<AgentDetail> {
-  let url = `/orgs/${orgId}/analytics/agents/${agentId}?period=${period}&page=${page}&perPage=${perPage}`;
-  if (userId) url += `&userId=${userId}`;
+  const url = `/orgs/${orgId}/analytics/agents/${agentId}?period=${period}&page=${page}&perPage=${perPage}`;
   return apiGet<AgentDetail>(url);
 }
 

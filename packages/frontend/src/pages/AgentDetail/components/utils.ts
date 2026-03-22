@@ -1,6 +1,6 @@
 export function formatChannel(channel: string): string {
-  if (channel.startsWith('integration:')) return channel.split(':')[1];
-  if (channel.startsWith('web:custom:')) return channel.split(':')[2];
+  if (channel.startsWith('integration:')) return channel.split(':')[1].toUpperCase();
+  if (channel.startsWith('web:custom:')) return channel.split(':')[2].toUpperCase();
   return channel.toUpperCase();
 }
 

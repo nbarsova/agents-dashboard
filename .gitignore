@@ -32,3 +32,4 @@ packages/backend/prisma/*.db-journal
 postgres-data/
 /packages/backend/src/prisma/
 /packages/backend/prisma/generated/
+/.playwright-mcp/

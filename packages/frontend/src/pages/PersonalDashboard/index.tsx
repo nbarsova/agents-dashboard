@@ -5,18 +5,18 @@ import { getPersonalAnalytics } from '../../api/analytics';
 import PeriodSelector from '../../components/PeriodSelector';
 import StatCard from '../../components/StatCard';
 import { useAuth } from '../../context/AuthContext';
+import MyAgentsList from './components/MyAgentsList';
 import RecentRunsList from './components/RecentRunsList';
 import SessionGauge from './components/SessionGauge';
 
 export default function PersonalDashboard() {
-  const { defaultOrgId, memberships } = useAuth();
+  const { defaultOrgId } = useAuth();
   const [period, setPeriod] = useState('30d');
   const [data, setData] = useState<PersonalAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const orgId = defaultOrgId;
-  const currentOrg = memberships.find((m) => m.orgId === orgId);
 
   useEffect(() => {
     if (!orgId) return;
@@ -34,7 +34,7 @@ export default function PersonalDashboard() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-text-primary">Recent Runs</h1>
+        <h1 className="text-xl font-bold text-text-primary">My Usage</h1>
         <PeriodSelector value={period} onChange={setPeriod} />
       </div>
 
@@ -56,13 +56,9 @@ export default function PersonalDashboard() {
         />
       )}
 
-      <RecentRunsList runs={data.recentRuns} />
+      <MyAgentsList agents={data.myAgents} orgId={orgId} />
 
-      {currentOrg && (
-        <p className="text-xs text-text-secondary">
-          Organization: {currentOrg.org.name} ({currentOrg.org.pricingPlan} plan)
-        </p>
-      )}
+      <RecentRunsList runs={data.recentRuns} />
     </div>
   );
 }

@@ -43,6 +43,7 @@ export default function Login() {
           <input
             type="email"
             placeholder="Email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="rounded border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
@@ -51,6 +52,7 @@ export default function Login() {
           <input
             type="password"
             placeholder="Password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="rounded border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"

@@ -1,7 +1,7 @@
 import type { TrendPoint } from '@template/shared';
 
 export function formatChannel(channel: string): string {
-  if (channel.startsWith('integration:')) return channel.split(':')[1];
+  if (channel.startsWith('integration:')) return channel.split(':')[1].toUpperCase();
   return channel.toUpperCase();
 }
 

@@ -39,7 +39,7 @@ export default function RunRow({ run }: RunRowProps) {
           {run.status}
         </span>
         <span className="w-16 text-center text-xs text-text-secondary">
-          {run.toolCallCount} tools
+          {run.toolCallCount} {run.toolCallCount === 1 ? 'tool' : 'tools'}
         </span>
       </div>
       {expanded && run.toolCallBreakdown.length > 0 && (

@@ -1,6 +1,7 @@
 import type { TrendPoint } from '@template/shared';
 import {
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -34,10 +35,15 @@ export default function TrendsChart({ data }: TrendsChartProps) {
               name === 'tokens' ? 'Tokens' : 'Runs',
             ]}
           />
+          <Legend
+            formatter={(value) => (value === 'tokens' ? 'Tokens' : 'Runs')}
+            wrapperStyle={{ fontSize: 12 }}
+          />
           <Line
             yAxisId="runs"
             type="monotone"
             dataKey="runs"
+            name="runs"
             stroke="#00A3FF"
             strokeWidth={2}
             dot={false}
@@ -46,6 +52,7 @@ export default function TrendsChart({ data }: TrendsChartProps) {
             yAxisId="tokens"
             type="monotone"
             dataKey="tokens"
+            name="tokens"
             stroke="#10B981"
             strokeWidth={2}
             dot={false}

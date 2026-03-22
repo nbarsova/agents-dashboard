@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 export default function AppLayout() {
   const { user, memberships, logout, defaultOrgId } = useAuth();
   const { orgId } = useParams();
-  const currentOrgId = orgId || defaultOrgId;
+   const currentOrgId = orgId || defaultOrgId;
 
   const { pathname } = useLocation();
   const currentOrg = memberships.find((m) => m.orgId === currentOrgId);
@@ -46,34 +46,16 @@ export default function AppLayout() {
             to="/me/analytics"
             className={`text-sm ${isMyUsageActive ? 'font-medium text-primary' : 'text-text-secondary hover:text-primary'}`}
           >
-            Recent Runs
+            My Usage
           </Link>
         </div>
         <div className="flex items-center gap-4">
-          {memberships.length > 1 && (
-            <select
-              className="rounded border border-border bg-white px-2 py-1 text-sm"
-              value={currentOrgId || ''}
-              onChange={(e) => {
-                window.location.href = `/orgs/${e.target.value}/overview`;
-              }}
-            >
-              {memberships.map((m) => (
-                <option key={m.orgId} value={m.orgId}>
-                  {m.org.name}
-                </option>
-              ))}
-            </select>
-          )}
-          {currentOrg && (
-            <span className="text-xs text-text-secondary">
-              {currentOrg.org.name}
-              {isAdmin && (
-                <span className="ml-1 rounded bg-primary/10 px-1.5 py-0.5 text-primary">admin</span>
-              )}
+          <span className="text-sm text-text-primary">{user?.name}</span>
+          {isAdmin && (
+            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
+              Admin
             </span>
           )}
-          <span className="text-sm text-text-secondary">{user?.name}</span>
           <button onClick={logout} className="text-sm text-text-secondary hover:text-red-500">
             Logout
           </button>
@@ -82,6 +64,10 @@ export default function AppLayout() {
       <main className="flex-1 overflow-auto p-6">
         <Outlet />
       </main>
-    </div>
+      <div className="flex m-4">
+        <span className="text-sm text-text-secondary">
+        {currentOrg?.org.name}
+      </span>
+      </div></div>
   );
 }
