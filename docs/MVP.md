@@ -15,6 +15,14 @@ Implementation of the analytics dashboard with mock agent data. No real agent ru
 | **Dashboard UI**     | Login, signup, org overview, agent detail, personal dashboard — 5 screens total                                              |
 | **Mock data system** | Seed endpoint generating realistic historical data for 2 organizations                                                      |
 
+### Authentication: Built In-House (PostgreSQL)
+
+Self-contained auth with `users`, `organizations`, `memberships` tables. Handles signup, login (email + password), org creation, invites, and role assignment directly.
+
+**Why for MVP:** No vendor dependency, single DB for joins across org/user/analytics, full control over the data model. Keeps the system self-contained and demonstrable.
+
+**Accepted tradeoffs:** We own auth security (password hashing, token rotation, brute-force protection). MFA and enterprise SSO are deferred.
+
 ## Screens and User Stories
 
 ### 1. Login (`/login`)
@@ -85,7 +93,8 @@ Implementation of the analytics dashboard with mock agent data. No real agent ru
 │  │Routes    │ │Routes    │ │Routes (dev only) │  │
 │  └──────────┘ └──────────┘ └──────────────────┘  │
 │  ┌─────────────────────────────────────────────┐ │
-│  │         RBAC Middleware (JWT + role)        │ │
+│  │     Role Based Access Control Middleware    │ │
+│  │        (JWT + role)                         │ │
 │  └─────────────────────────────────────────────┘ │
 │  ┌─────────────────────────────────────────────┐ │
 │  │         Prisma Client (PostgreSQL)          │ │

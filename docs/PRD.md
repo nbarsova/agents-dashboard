@@ -1,170 +1,41 @@
-# PRD: Organizational Agents Analytics Dashboard
+# Organizational Agents Analytics Dashboard
+
+## Problem
+
+Our platform allows engineers to run AI agents in the cloud. As adoption grows, organizations lack visibility into how agents are being used — there is no centralized way to track agent executions, gather usage statistics, evaluate token and seat-based costs, or map agent activity back to company projects and KPIs. Without this, engineering leads and admins cannot justify spend, identify underutilized tooling, or correlate agent usage with business outcomes.
 
 ## Proposed Solution
 
-### How It Works
-
 A customer-facing analytics dashboard embedded in the platform's web UI, providing real-time and historical views of agent usage across the organization.
-
-#### Core Data Model
-
-The system captures **agent run events** as the atomic unit, each containing:
-
-| Field               | Source                     | Description                                                   |
-|---------------------|----------------------------|---------------------------------------------------------------|
-| `id`                | Agent runtime              | Unique identifier for the run                                 |
-| `agentId`           | Agent registry             | Which agent was executed                                      |
-| `userId`            | Auth/session               | Who triggered it                                              |
-| `orgId`             | Auth/session               | Which organization                                            |
-| `createdAt`         | Agent runtime              | When the run started                                          |
-| `tokensUsed`        | Agent runtime              | Input + output token count                                    |
-| `projectId`         | Agent config / Git context | Repository or project association                             |
-| `invocationChannel` | Entry point detection      | CLI / Web UI / Custom API / Integration (Slack, Linear, etc.) |
-| `sessionId`         | Agent runtime              | Groups related runs in a session                              |
-| `status`            | Agent runtime              | Success / failure / timeout                                   |
-| `durationMs`        | Agent runtime              | Wall-clock execution time                                     |
-
-Each agent run contains zero or more **tool calls**. Tools are configured per-organization and represent external capabilities an agent can invoke (e.g., file read, web search, code execution, API calls).
-
-**Tool** (configured per org):
-
-| Field         | Description                                      |
-|---------------|--------------------------------------------------|
-| `id`          | Unique identifier                                |
-| `orgId`       | Which organization this tool belongs to          |
-| `name`        | Tool name (e.g., "web_search")      |
-| `description` | What the tool does                               |
-
-**ToolCall** (recorded per agent run):
-
-| Field         | Source        | Description                                          |
-|---------------|---------------|------------------------------------------------------|
-| `id`          | Agent runtime | Unique identifier for the call                       |
-| `agentRunId`  | Agent runtime | Which run this call belongs to                       |
-| `toolId`      | Agent runtime | Which tool was invoked                               |
-| `tokensUsed`  | Agent runtime | Tokens consumed by this tool call                    |
-| `durationMs`  | Agent runtime | Wall-clock execution time of the call                |
-| `status`      | Agent runtime | Success / failure / timeout                          |
-| `createdAt`   | Agent runtime | When the call was made                               |
-
-This enables analytics like: most-used tools per agent, tool failure rates, token cost breakdown by tool, and tool-level performance trends.
-
-#### Pricing Calculation Engine
-
-There exist two possible pricing models for an organization:
-
-**Token-based pricing:**
-- `cost = tokensUsed × org.tokenRate`
-- Token rate is configurable per org (set during contract/plan setup)
-- Displayed as approximate cost alongside every run and in aggregate views
-
-**Seat-based pricing:**
-- Each user seat has a token limit per one session
-- `usagePct = tokensUsed / sessionLimit × 100`
-- Displayed as a progress bar / gauge per user
-- Alerts at 80% and 100% thresholds
-
-The pricing model is determined by `Organization.pricingPlan` — the dashboard adapts its display accordingly.
-
-#### Dashboard Views
-
-**1. Organization Overview (Admin)**
-- Total runs, total tokens, total cost (time-period selectable)
-- Usage trend chart (daily/weekly/monthly)
-- Top agents by usage
-- Top users by usage
-- Channel breakdown (CLI / Web / Integration pie chart)
-- KPI impact summary (if KPIs configured)
-
-**2. Agent Detail View (Admin)**
-- Expandable usage rows showing:
-  - Run timestamp
-  - User who ran it
-  - Tokens used (+ approximate cost for token-based plans)
-  - Session limit usage (for seat-based plans)
-  - Project/repository
-  - Invocation channel
-  - Execution time
-  - Tool calls summary (count, breakdown by tool)
-- Linked KPIs with trend overlay
-- Filterable by user, project, channel, date range
-
-**3. Personal Dashboard (Member)**
-- Own usage only (same metrics as agent detail, filtered to `userId = self`)
-- Personal cost / session limit tracking
-- "My agents" quick view
-
-**4. Organization Settings (Admin)**
-
-Unified settings screen with two tabs: Projects and KPIs.
-
-**Projects tab:**
-- Create/edit/delete projects (name, repository URL)
-
-**KPIs tab:**
-- Create/edit KPIs manually (name, target, measurement method)
-- Import from external tools (Monday.com, Linear, Jira) via OAuth
-- Link KPIs to specific agents (many-to-many via `KpiAgent`)
-- KPI trend displayed alongside agent usage for correlation
 
 #### High-Level Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Client (Browser)                        │
-│  ┌──────────────┐  ┌──────────────┐  ┌───────────────────┐  │
-│  │ Org Overview │  │ Agent Detail │  │ Personal Dashboard│  │
-│  └──────┬───────┘  └──────┬───────┘  └────────┬──────────┘  │
-│         └─────────────────┼───────────────────┘             │
-│                           │ REST                            │
-└───────────────────────────┼─────────────────────────────────┘
-                            │
-┌───────────────────────────┼─────────────────────────────────┐
-│                    API Gateway                              │
-│              (Auth / Rate Limiting / RBAC)                  │
-│         member: own data only | admin: org-wide             │
-└───────────────────────────┼─────────────────────────────────┘
-                            │
-          ┌─────────────────┼─────────────────┐
-          │                 │                 │
-          ▼                 ▼                 ▼
-┌─────────────────┐ ┌─────────────┐ ┌─────────────────────┐
-│  Analytics API  │ │  KPI Service│ │  Pricing Service    │
-│  (query, agg,   │ │  (CRUD,     │ │  (token rates,      │
-│  filter, export)│ │   import)   │ │   session limits,   │
-│                 │ │             │ │  cost calculation)  │
-└────────┬────────┘ └──────┬──────┘ └──────────┬──────────┘
-         │                 │                    │
-         ▼                 ▼                    ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Data Store Layer                         │
-│                                                             │
-│  ┌──────────────────┐  ┌─────────────┐  ┌───────────────┐   │
-│  │  TimescaleDB /   │  │  PostgreSQL │  │  Redis        │   │
-│  │  ClickHouse      │  │  (KPIs,     │  │  (caching,    │   │
-│  │  (run events,    │  │   orgs,     │  │   rate limits,│   │
-│  │   time-series    │  │   users,    │  │   sessions)   │   │
-│  │   aggregations)  │  │   plans)    │  │               │   │
-│  └──────────────────┘  └─────────────┘  └───────────────┘   │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-                            ▲
-                            │ Event ingestion
-┌───────────────────────────┼─────────────────────────────────┐
-│                   Event Pipeline                            │
-│  ┌───────────────┐  ┌─────┴───────┐  ┌───────────────────┐  │
-│  │ Agent Runtime │→ │  Kafka /    │→ │  Stream Processor │  │
-│  │ (emits events)│  │  SQS Queue  │  │  (enrichment,     │  │
-│  └───────────────┘  └─────────────┘  │   dedup, pricing) │  │
-│                                      └───────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-```
+![High-Level Architecture](architecture_diagram.png)
 
 **Key architectural decisions:**
-- **Event sourcing**: Agent runs emit immutable events → queued → processed → stored. This decouples the agent runtime from analytics and allows replay/reprocessing.
-- **OLAP store for time-series**: ClickHouse or TimescaleDB for fast aggregations over millions of run events (GROUP BY time bucket, agent, user, channel).
-- **Pre-aggregated rollups**: Materialized views for hourly/daily/monthly aggregations to keep dashboard queries fast (<200ms p95).
-- **RBAC at API layer**: Members see `WHERE userId = :self`, admins see `WHERE orgId = :org`. Single query path, different filters.
+
+1. **Asynchronous event ingestion via message queue** — Agent runtime emits events into a message queue (Kafka, SQS, or RabbitMQ) rather than writing directly to a database. This decouples event producers from consumers, absorbs traffic spikes, and ensures no events are lost if downstream services are temporarily unavailable.
+
+2. **Dedicated Event Consumer Service** — A consumer service sits between the message queue and both the raw event store and the aggregation service. It is responsible for:
+    - **Validation** — schema checks, deduplication by event ID, rejecting malformed payloads.
+    - **Enrichment** — resolving `orgId`/`userId` context, attaching pricing metadata, normalizing invocation channel labels.
+    - **Fan-out** — writing validated raw events to the NoSQL store (Mongo) for retention and forwarding enriched events to the Aggregation Service for rollup processing.
+    - This separation keeps the aggregation logic free from ingestion concerns and allows each layer to scale independently.
+
+3. **Raw events persisted in a NoSQL store** — Raw agent run events are written to a document database (e.g., MongoDB) optimized for high write throughput and flexible schema evolution. This store serves as the system of record for event data within the retention window.
+
+4. **Separate analytical database for aggregated data** — Pre-computed rollups (hourly, daily) are stored in a columnar analytical database (e.g., ClickHouse) tuned for fast time-series reads. This keeps dashboard query latency low regardless of raw event volume.
+
+5. **Three-database separation** — Raw events (NoSQL), aggregated analytics (ClickHouse), and domain entities (PostgreSQL for orgs, users, KPIs, plans) each live in purpose-fit stores. This avoids contention between write-heavy ingestion, read-heavy analytics queries, and transactional CRUD operations.
+
+6. **Aggregation Service as an independent process** — Runs as a standalone service (or scheduled cron) that reads enriched events and maintains rollup tables. It can be restarted, scaled, or re-run for backfills without affecting real-time ingestion or the API layer.
+
+7. **RBAC enforced at the API Gateway** — All authorization logic (member sees own data, admin sees org-wide) is applied at the gateway before requests reach downstream services, ensuring a single enforcement point.
+
+#### Authentication using an Auth Provider
+
+Authentication is delegated to a managed provider. Our DB retains `organizations` and `memberships` tables for domain-specific fields (pricing, session limits, KPI permissions), referencing external user IDs.
+Auth security is the provider's responsibility. Enterprise SSO (SAML/OIDC) is a config toggle. Pre-built UI components (login, org switcher, invites) accelerate shipping.
 
 #### Invocation Channel Detection
 
@@ -179,27 +50,7 @@ Since we control the agent runtime, each entry point tags the run:
 | Linear integration | Webhook handler sets `channel = "integration:linear"`   |
 | API direct         | API gateway sets `channel = "api"` if no channel header |
 
-#### KPI Integration
-
-```
-┌─────────────────┐     ┌─────────────────┐
-│  Monday.com     │────▶│                 │
-│  Linear         │────▶│   KPI Service   │──── KPI values + trends
-│  Jira           │────▶│   (OAuth sync)  │
-│  Manual entry   │────▶│                 │
-└─────────────────┘     └────────┬────────┘
-                                 │
-                                 ▼
-                        ┌─────────────────┐
-                        │   KpiAgent      │
-                        │  (many-to-many) │
-                        │                 │
-                        └─────────────────┘
-```
-
-Admins link KPIs to agents. The dashboard overlays KPI trends on agent usage charts, enabling visual correlation (not causal attribution — we're explicit about this).
-
-### User Stories
+## User Stories
 
 **Story 1: Admin reviews monthly agent spend**
 - **As an** org admin
@@ -221,52 +72,172 @@ Admins link KPIs to agents. The dashboard overlays KPI trends on agent usage cha
 - **I want to** see the KPI trend overlaid on agent usage over the past quarter
 - **So that** I can assess whether increased agent usage correlates with improved deployment frequency
 
-## Non-Goals
+## Out of scope
 
 - **Causal KPI attribution** — we show correlation, not "this agent caused this KPI change"
 - **Agent configuration/management** — this is analytics only, not a control plane
 - **Per-run detailed logs/traces** — we show metadata, not full conversation logs (that's a separate observability concern)
 - **Billing/invoicing** — we show approximate costs for visibility; actual billing is handled by the billing system
-- **Custom report builder** — v1 ships fixed views; custom queries/exports are a future enhancement
+- **Custom report builder** — fixed views; custom queries/exports could be a future enhancement
 
-## User & Organization Management
+## Dashboard Views
 
-### Data Model
+**1. Organization Overview (Admin)**
+- Total runs, total tokens, total cost (time-period selectable)
+- Usage trend chart (daily/weekly/monthly)
+- Top agents by usage
+- Top users by usage
+- Channel breakdown (CLI / Web / Integration pie chart)
+- KPI impact summary (if KPIs configured)
 
+**2. Agent Detail View (Admin)**
+- Expandable usage rows showing:
+    - Run timestamp
+    - User who ran it
+    - Tokens used (+ approximate cost for token-based plans)
+    - Session limit usage (for seat-based plans)
+    - Project/repository
+    - Invocation channel
+    - Execution time
+    - Tool calls summary (count, breakdown by tool)
+- Linked KPIs with trend overlay
+- Filterable by user, project, channel, date range
+
+**3. Personal Dashboard (Member)**
+- Own usage only (same metrics as agent detail, filtered to `userId = self`)
+- Personal cost / session limit tracking
+- "My agents" quick view
+
+**4. Organization Settings (Admin)**
+
+Unified settings screen with two tabs: Projects and KPIs.
+
+**Projects tab:**
+- Create/edit/delete projects (name, repository URL)
+
+**KPIs tab:**
+- Create/edit KPIs manually (name, target, measurement method)
+- Import from external tools (Monday.com, Linear, Jira) via OAuth
+- Link KPIs to specific agents (many-to-many via `KpiAgent`)
+- KPI trend displayed alongside agent usage for correlation
+
+## Data Models
+#### Event pipeline data model
+
+Events are stored in a NoSQL document database (e.g., MongoDB). Tool calls are embedded as a nested array within the agent run document. This keeps all data for a single run co-located, enables atomic writes, and avoids cross-document lookups.
+
+**AgentRun document:**
+
+```json
+{
+  "id": "run_abc123",
+  "agentId": "agent_42",
+  "userId": "user_7",
+  "orgId": "org_1",
+  "createdAt": "2026-03-22T10:15:00Z",
+  "tokensUsed": 4820,
+  "projectId": "proj_8",
+  "invocationChannel": "cli",
+  "sessionId": "sess_99",
+  "status": "success",
+  "durationMs": 12340,
+  "toolCalls": [
+    {
+      "id": "tc_001",
+      "toolName": "web_search",
+      "tokensUsed": 1200,
+      "durationMs": 3400,
+      "status": "success",
+      "createdAt": "2026-03-22T10:15:02Z"
+    },
+    {
+      "id": "tc_002",
+      "toolName": "code_exec",
+      "tokensUsed": 860,
+      "durationMs": 5100,
+      "status": "failure",
+      "createdAt": "2026-03-22T10:15:06Z"
+    }
+  ]
+}
 ```
-┌──────────────┐     ┌───────────────────┐     ┌────────────────────┐
-│    User      │────▶│   Membership      │◀────│  Organization      │
-│              │     │                   │     │                    │
-│  id          │     │  userId           │     │  id                │
-│  email       │     │  orgId            │     │  name              │
-│  name        │     │  role: member|    │     │  pricingPlan       │
-│  passwordHash│     │         admin     │     │  tokenRate         │
-│  createdAt   │     │                   │     │  sessionLimit      │
-│  updatedAt   │     │                   │     │  billingPeriodStart│
-└──────────────┘     └───────────────────┘     │  createdAt         │
-                                               │  updatedAt         │
-                                               └────────────────────┘
-```
+
+**Field reference — AgentRun (top-level):**
+
+| Field               | Source                     | Description                                                   |
+|---------------------|----------------------------|---------------------------------------------------------------|
+| `id`                | Agent runtime              | Unique identifier for the run                                 |
+| `agentId`           | Agent registry             | Which agent was executed                                      |
+| `userId`            | Auth/session               | Who triggered it                                              |
+| `orgId`             | Auth/session               | Which organization                                            |
+| `createdAt`         | Agent runtime              | When the run started                                          |
+| `tokensUsed`        | Agent runtime              | Input + output token count                                    |
+| `projectId`         | Agent config / Git context | Repository or project association                             |
+| `invocationChannel` | Entry point detection      | CLI / Web UI / Custom API / Integration (Slack, Linear, etc.) |
+| `sessionId`         | Agent runtime              | Groups related runs in a session                              |
+| `status`            | Agent runtime              | Success / failure / timeout                                   |
+| `durationMs`        | Agent runtime              | Wall-clock execution time                                     |
+| `toolCalls`         | Agent runtime              | Embedded array of tool call sub-documents                     |
+
+**Field reference — ToolCall (embedded sub-document):**
+
+| Field        | Source        | Description                               |
+|--------------|---------------|-------------------------------------------|
+| `id`         | Agent runtime | Unique identifier for the call            |
+| `toolName`   | Agent runtime | Name of the tool invoked                  |
+| `tokensUsed` | Agent runtime | Tokens consumed by this tool call         |
+| `durationMs` | Agent runtime | Wall-clock execution time of the call     |
+| `status`     | Agent runtime | Success / failure / timeout               |
+| `createdAt`  | Agent runtime | When the call was made                    |
+
+## Organization and User Data Model
+
+![Postgres Data Model](postgres_data_model.png)
 
 - A user can belong to multiple orgs (role is per-membership, not per-user)
 - Pricing config lives on the org entity
 - RBAC enforced at API middleware: members see `WHERE userId = :self`, admins see `WHERE orgId = :org`
+- **Project** — represents a repository or codebase; linked to agents via many-to-many `AgentProject`
+- **Agent** — a registered agent within the org; linked to projects and KPIs
+- **Tool** — an external capability configured per org (e.g., `web_search`, `code_exec`); unique by `(orgId, name)`
+- **Kpi** — a key performance indicator tracked per org, linked to agents via `KpiAgent`
 
-### MVP: Built In-House (PostgreSQL)
+#### Pricing Calculation
 
-Self-contained auth with `users`, `organizations`, `memberships` tables. Handles signup, login (email + password), org creation, invites, and role assignment directly.
+There exist two possible pricing models for an organization:
 
-**Why for MVP:** No vendor dependency, single DB for joins across org/user/analytics, full control over the data model. Keeps the system self-contained and demonstrable.
+**Token-based pricing:**
+- `cost = tokensUsed × org.tokenRate`
+- Token rate is configurable per org (set during contract/plan setup)
+- Displayed as approximate cost alongside every run and in aggregate views
 
-**Accepted tradeoffs:** We own auth security (password hashing, token rotation, brute-force protection). MFA and enterprise SSO are deferred.
+**Seat-based pricing:**
+- Each user seat has a token limit per one session
+- `usagePct = tokensUsed / sessionLimit × 100`
+- Displayed as a progress bar / gauge per user
+- Alerts at 80% and 100% thresholds
 
-### Production Path: Managed Auth Provider (Clerk / WorkOS)
+The pricing model is determined by `Organization.pricingPlan` — the dashboard adapts its display accordingly.
 
-Delegate authentication to a managed provider. Our DB retains `organizations` and `memberships` tables for domain-specific fields (pricing, session limits, KPI permissions), referencing external user IDs.
+#### KPI Integration
 
-**Why for production:** Auth security becomes the provider's responsibility. Enterprise SSO (SAML/OIDC) is a config toggle. Pre-built UI components (login, org switcher, invites) accelerate shipping.
+```
+┌─────────────────┐     ┌─────────────────┐
+│  Monday.com     │────▶│                 │
+│  Linear         │────▶│   KPI Service   │──── KPI values + trends
+│  Jira           │────▶│   (OAuth sync)  │
+│  Manual entry   │────▶│                 │
+└─────────────────┘     └────────┬────────┘
+                                 │
+                                 ▼
+                        ┌─────────────────┐
+                        │   KpiAgent      │
+                        │  (many-to-many) │
+                        │                 │
+                        └─────────────────┘
+```
 
-**Migration strategy:** Auth is isolated to an API middleware layer. Swapping from "verify JWT from our DB" to "verify JWT from Clerk/WorkOS" requires no changes to business logic or analytics queries.
+Admins link KPIs to agents. The dashboard overlays KPI trends on agent usage charts, enabling visual correlation (not causal attribution — we're explicit about this).
 
 ## Data Retention & Scale Considerations
 
