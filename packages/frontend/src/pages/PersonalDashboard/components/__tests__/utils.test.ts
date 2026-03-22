@@ -3,20 +3,20 @@ import { describe, expect,it } from 'vitest';
 import { getBarColor,statusColor } from '../utils';
 
 describe('statusColor', () => {
-  it('returns success class for success', () => {
-    expect(statusColor('success')).toBe('text-success');
+  it('returns success classes for success', () => {
+    expect(statusColor('success')).toBe('bg-success/10 text-success');
   });
 
-  it('returns red class for failure', () => {
-    expect(statusColor('failure')).toBe('text-red-500');
+  it('returns red classes for failure', () => {
+    expect(statusColor('failure')).toBe('bg-red-100 text-red-600');
   });
 
-  it('returns alert class for timeout', () => {
-    expect(statusColor('timeout')).toBe('text-alert');
+  it('returns alert classes for timeout', () => {
+    expect(statusColor('timeout')).toBe('bg-alert/10 text-alert');
   });
 
-  it('returns secondary class for unknown status', () => {
-    expect(statusColor('unknown')).toBe('text-text-secondary');
+  it('returns default classes for unknown status', () => {
+    expect(statusColor('unknown')).toBe('bg-bg-alt text-text-secondary');
   });
 });
 

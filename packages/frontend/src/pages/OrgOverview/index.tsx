@@ -8,6 +8,7 @@ import StatCard from '../../components/StatCard';
 import ChannelChart from './components/ChannelChart';
 import TopList from './components/TopList';
 import TrendsChart from './components/TrendsChart';
+import WeekdayChart from './components/WeekdayChart';
 
 export default function OrgOverview() {
   const { orgId } = useParams<{ orgId: string }>();
@@ -65,9 +66,12 @@ export default function OrgOverview() {
           value={data.totalCost !== null ? `$${data.totalCost.toFixed(2)}` : 'N/A (seat plan)'}
         />
       </div>
-
       <TrendsChart data={data.trends} />
-      <ChannelChart data={data.channelBreakdown} />
+
+      <div className="grid grid-cols-2 gap-4">
+        <ChannelChart data={data.channelBreakdown} />
+        <WeekdayChart data={data.trends} />
+      </div>
 
       <div className="grid grid-cols-2 gap-4">
         <TopList
